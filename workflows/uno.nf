@@ -20,12 +20,12 @@ WorkflowUno.initialise(params, log)
     CONFIG FILES
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-
+/*
 ch_multiqc_config          = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
 ch_multiqc_custom_config   = params.multiqc_config ? Channel.fromPath( params.multiqc_config, checkIfExists: true ) : Channel.empty()
 ch_multiqc_logo            = params.multiqc_logo   ? Channel.fromPath( params.multiqc_logo, checkIfExists: true ) : Channel.empty()
 ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
-
+*/
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT LOCAL MODULES/SUBWORKFLOWS
@@ -46,8 +46,10 @@ include { INPUT_CHECK } from '../subworkflows/local/input_check'
 //
 // MODULE: Installed directly from nf-core/modules
 //
-include { FASTQC                      } from '../modules/nf-core/fastqc/main'
-include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
+include { FASTQC as FASTQC_RAW        } from '../modules/nf-core/fastqc/main'
+include { FASTQC as FASTQC_TRIMMED    } from '../modules/nf-core/fastqc/main'
+include { TRIMMOMATIC                 } from '../modules/nf-core/trimmomatic/main'
+//include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 
 /*
@@ -66,10 +68,14 @@ workflow UNO {
     //
     // SUBWORKFLOW: Read in samplesheet, validate and stage input files
     //
-    INPUT_CHECK (
+        INPUT_CHECK (
         file(params.input)
     )
-    ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
+
+    ch_raw_short_reads  = INPUT_CHECK.out.raw_short_reads
+    ch_raw_long_reads   = INPUT_CHECK.out.raw_long_reads
+  
+    //ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
     // TODO: OPTIONAL, you can use nf-validation plugin to create an input channel from the samplesheet with Channel.fromSamplesheet("input")
     // See the documentation https://nextflow-io.github.io/nf-validation/samplesheets/fromSamplesheet/
     // ! There is currently no tooling to help you write a sample sheet schema
@@ -77,18 +83,42 @@ workflow UNO {
     //
     // MODULE: Run FastQC
     //
-    FASTQC (
-        INPUT_CHECK.out.reads
+    FASTQC_RAW (
+        ch_raw_short_reads
     )
-    ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+    ch_versions = ch_versions.mix(FASTQC_RAW.out.versions.first())
+    TRIMMOMATIC {
+        FASTQC_RAW.out.raw_reads
+    }
+    ch_versions = ch_versions.mix(TRIMMOMATIC.out.versions.first())
+    //grouped_reads_ch = TRIMMOMATIC
+        //.out
+        //.trimmed_reads
+        //.map { meta, reads ->
+          //[ meta.group, meta, reads ]
+        //}
+        //.groupTuple(by: 0)
+        //.map {
+          //group, meta, reads ->
 
+          //def groupedMeta = [:]
+          //groupedMeta.id = "grouped_$group"
+          //groupedMeta.group = group
+
+          //def reads1 = reads.collect{ it[0] }
+          //def reads2 = reads.collect{ it[1] }
+
+          //[groupedMeta, reads1, reads2]
+       // }
+    FASTQC_TRIMMED {
+        TRIMMOMATIC.out.trimmed_reads
+    }
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
     )
-
-    //
+    
     // MODULE: MultiQC
-    //
+    /*
     workflow_summary    = WorkflowUno.paramsSummaryMultiqc(workflow, summary_params)
     ch_workflow_summary = Channel.value(workflow_summary)
 
@@ -107,7 +137,7 @@ workflow UNO {
         ch_multiqc_custom_config.toList(),
         ch_multiqc_logo.toList()
     )
-    multiqc_report = MULTIQC.out.report.toList()
+    multiqc_report = MULTIQC.out.report.toList() */
 }
 
 /*
@@ -115,7 +145,7 @@ workflow UNO {
     COMPLETION EMAIL AND SUMMARY
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-
+/*
 workflow.onComplete {
     if (params.email || params.email_on_fail) {
         NfcoreTemplate.email(workflow, params, summary_params, projectDir, log, multiqc_report)
@@ -133,7 +163,7 @@ workflow.onError {
         println("💡 See here on how to configure pipeline: https://nf-co.re/docs/usage/configuration#tuning-workflow-resources 💡")
     }
 }
-
+*/
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     THE END
