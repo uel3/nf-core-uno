@@ -20,12 +20,12 @@ WorkflowUno.initialise(params, log)
     CONFIG FILES
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-/*
+
 ch_multiqc_config          = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
 ch_multiqc_custom_config   = params.multiqc_config ? Channel.fromPath( params.multiqc_config, checkIfExists: true ) : Channel.empty()
 ch_multiqc_logo            = params.multiqc_logo   ? Channel.fromPath( params.multiqc_logo, checkIfExists: true ) : Channel.empty()
 ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
-*/
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT LOCAL MODULES/SUBWORKFLOWS
@@ -49,7 +49,8 @@ include { INPUT_CHECK } from '../subworkflows/local/input_check'
 include { FASTQC as FASTQC_RAW        } from '../modules/nf-core/fastqc/main'
 include { FASTQC as FASTQC_TRIMMED    } from '../modules/nf-core/fastqc/main'
 include { TRIMMOMATIC                 } from '../modules/nf-core/trimmomatic/main'
-//include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
+include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
+include { MEGAHIT                     } from '../modules/nf-core/megahit/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 
 /*
@@ -68,14 +69,13 @@ workflow UNO {
     //
     // SUBWORKFLOW: Read in samplesheet, validate and stage input files
     //
-        INPUT_CHECK (
+    INPUT_CHECK (
         file(params.input)
     )
 
     ch_raw_short_reads  = INPUT_CHECK.out.raw_short_reads
     ch_raw_long_reads   = INPUT_CHECK.out.raw_long_reads
   
-    //ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
     // TODO: OPTIONAL, you can use nf-validation plugin to create an input channel from the samplesheet with Channel.fromSamplesheet("input")
     // See the documentation https://nextflow-io.github.io/nf-validation/samplesheets/fromSamplesheet/
     // ! There is currently no tooling to help you write a sample sheet schema
@@ -113,12 +113,38 @@ workflow UNO {
     FASTQC_TRIMMED {
         TRIMMOMATIC.out.trimmed_reads
     }
+    ch_short_reads_assembly = Channel.empty()
+    ch_short_reads_assembly = TRIMMOMATIC.out.trimmed_reads
+    /*
+    CO-ASSEMBLY OF TRIMMED READS 
+    */
+    ch_short_reads_grouped = ch_short_reads_assembly
+                .map { meta, reads -> [ meta.group, meta, reads ] }
+                .groupTuple(by: 0)
+                .map { group, metas, reads ->
+                    //params.bbnorm
+                    def meta         = [:]
+                    meta.id          = "group-$group"
+                    meta.group       = group
+                    [ meta, reads.collect { it[0] }, reads.collect { it[1] } ]
+                }
+            // long reads
+            // group and set group as new id
+    ch_assemblies = Channel.empty()
+    MEGAHIT ( ch_short_reads_grouped )
+            ch_megahit_assemblies = MEGAHIT.out.assembly
+                .map { meta, assembly ->
+                    def meta_new = meta + [assembler: 'MEGAHIT']
+                    [ meta_new, assembly ]
+                }
+            ch_assemblies = ch_assemblies.mix(ch_megahit_assemblies)
+            ch_versions = ch_versions.mix(MEGAHIT.out.versions.first())
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
     )
     
     // MODULE: MultiQC
-    /*
+    
     workflow_summary    = WorkflowUno.paramsSummaryMultiqc(workflow, summary_params)
     ch_workflow_summary = Channel.value(workflow_summary)
 
@@ -129,7 +155,7 @@ workflow UNO {
     ch_multiqc_files = ch_multiqc_files.mix(ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
     ch_multiqc_files = ch_multiqc_files.mix(ch_methods_description.collectFile(name: 'methods_description_mqc.yaml'))
     ch_multiqc_files = ch_multiqc_files.mix(CUSTOM_DUMPSOFTWAREVERSIONS.out.mqc_yml.collect())
-    ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]}.ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(FASTQC_RAW.out.raw_reads.collect{it[1]}.ifEmpty([]))
 
     MULTIQC (
         ch_multiqc_files.collect(),
@@ -137,7 +163,7 @@ workflow UNO {
         ch_multiqc_custom_config.toList(),
         ch_multiqc_logo.toList()
     )
-    multiqc_report = MULTIQC.out.report.toList() */
+    multiqc_report = MULTIQC.out.report.toList()
 }
 
 /*
@@ -145,7 +171,7 @@ workflow UNO {
     COMPLETION EMAIL AND SUMMARY
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-/*
+
 workflow.onComplete {
     if (params.email || params.email_on_fail) {
         NfcoreTemplate.email(workflow, params, summary_params, projectDir, log, multiqc_report)
@@ -163,7 +189,6 @@ workflow.onError {
         println("💡 See here on how to configure pipeline: https://nf-co.re/docs/usage/configuration#tuning-workflow-resources 💡")
     }
 }
-*/
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     THE END

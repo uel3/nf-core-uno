@@ -30,7 +30,10 @@
 <!-- TODO nf-core: Fill in short bullet-pointed list of the default steps in the pipeline -->
 
 1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
-2. Present QC for raw reads ([`MultiQC`](http://multiqc.info/))
+2. Trimmomatic 
+3. Read QC 
+4. Megahit Co-assembly of reads
+5. Present QC for raw reads ([`MultiQC`](http://multiqc.info/))
 
 ## Usage
 
