@@ -35,8 +35,8 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 //
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
-include { INPUT_CHECK } from '../subworkflows/local/input_check'
-
+include { INPUT_CHECK  } from '../subworkflows/local/input_check'
+include { BINNING_PREP } from '../subworkflows/local/binning_prep'
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT NF-CORE MODULES/SUBWORKFLOWS
@@ -46,12 +46,12 @@ include { INPUT_CHECK } from '../subworkflows/local/input_check'
 //
 // MODULE: Installed directly from nf-core/modules
 //
-include { FASTQC as FASTQC_RAW        } from '../modules/nf-core/fastqc/main'
-include { FASTQC as FASTQC_TRIMMED    } from '../modules/nf-core/fastqc/main'
-include { TRIMMOMATIC                 } from '../modules/nf-core/trimmomatic/main'
-include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
-include { MEGAHIT                     } from '../modules/nf-core/megahit/main'
-include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
+include { FASTQC as FASTQC_RAW                  } from '../modules/nf-core/fastqc/main'
+include { FASTQC as FASTQC_TRIMMED              } from '../modules/nf-core/fastqc/main'
+include { TRIMMOMATIC                           } from '../modules/nf-core/trimmomatic/main'
+include { MULTIQC                               } from '../modules/nf-core/multiqc/main'
+include { MEGAHIT                               } from '../modules/nf-core/megahit/main'
+include { CUSTOM_DUMPSOFTWAREVERSIONS           } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -139,6 +139,9 @@ workflow UNO {
                 }
             ch_assemblies = ch_assemblies.mix(ch_megahit_assemblies)
             ch_versions = ch_versions.mix(MEGAHIT.out.versions.first())
+    BINNING_PREP ( ch_assemblies, ch_short_reads_assembly )
+            ch_versions = ch_versions.mix(BINNING_PREP.out.bowtie2_version.first())
+
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
     )
