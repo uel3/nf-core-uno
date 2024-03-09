@@ -32,7 +32,7 @@ process BOWTIE2_ALIGNASSEMBLY {
     path "versions.yml"                                                                                                                                                                                   , emit: versions
 
     script:
-    //def args = task.ext.args ?: ''
+    def args = task.ext.args ?: ''
     def name = "${assembly_meta.assembler}-${assembly_meta.id}-${reads_meta.id}"
     def input = "-1 \"${reads[0]}\" -2 \"${reads[1]}\""
     """
