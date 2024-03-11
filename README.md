@@ -31,9 +31,12 @@
 
 1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
 2. Trimmomatic 
-3. Read QC 
+3. Read QC on trimmed reads
 4. Megahit Co-assembly of reads
-5. Present QC for raw reads ([`MultiQC`](http://multiqc.info/))
+5. Preparation for Binning  
+  i. Build a Bowtie2 Co-assembly index
+  ii. Map trimmed reads back to Bowtie2 co-assembly index for binning preperation
+6. Present QC for raw reads ([`MultiQC`](http://multiqc.info/))
 
 ## Usage
 
