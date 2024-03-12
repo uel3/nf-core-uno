@@ -88,7 +88,7 @@ workflow UNO {
     )
     ch_versions = ch_versions.mix(FASTQC_RAW.out.versions.first())
     TRIMMOMATIC {
-        FASTQC_RAW.out.raw_reads
+        ch_raw_short_reads
     }
     ch_versions = ch_versions.mix(TRIMMOMATIC.out.versions.first())
     //grouped_reads_ch = TRIMMOMATIC
