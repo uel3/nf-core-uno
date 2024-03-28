@@ -37,6 +37,7 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 //
 include { INPUT_CHECK  } from '../subworkflows/local/input_check'
 include { BINNING_PREP } from '../subworkflows/local/binning_prep'
+include { BINNING      } from '../subworkflows/local/binning'
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT NF-CORE MODULES/SUBWORKFLOWS
@@ -52,7 +53,6 @@ include { TRIMMOMATIC                           } from '../modules/nf-core/trimm
 include { MULTIQC                               } from '../modules/nf-core/multiqc/main'
 include { MEGAHIT                               } from '../modules/nf-core/megahit/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS           } from '../modules/nf-core/custom/dumpsoftwareversions/main'
-
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RUN MAIN WORKFLOW
@@ -141,7 +141,10 @@ workflow UNO {
             ch_versions = ch_versions.mix(MEGAHIT.out.versions.first())
     BINNING_PREP ( ch_assemblies, ch_short_reads_assembly )
             ch_versions = ch_versions.mix(BINNING_PREP.out.bowtie2_version.first())
-
+    BINNING (BINNING_PREP.out.grouped_mappings, ch_short_reads_assembly)
+        ch_bowtie2_assembly_multiqc = BINNING_PREP.out.bowtie2_assembly_multiqc
+        ch_versions = ch_versions.mix(BINNING_PREP.out.bowtie2_version.first())
+        ch_versions = ch_versions.mix(BINNING.out.versions)
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
     )
