@@ -31,7 +31,7 @@ UnO is an mNGS bioinformatics pipeline that supports **The UnO Project**. UnO is
 <!-- TODO nf-core: Fill in short bullet-pointed list of the default steps in the pipeline -->
 
 1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
-2. Perform quality and adapter trimming on raw reads (['Trimmomatic'] (http://www.usadellab.org/cms/?page=trimmomatic))0
+2. Perform quality and adapter trimming on raw reads (['Trimmomatic'](http://www.usadellab.org/cms/?page=trimmomatic))
 3. Read QC on trimmed reads
 4. Co-assemble mNGS reads from outbreak dataset into single outbreak assembly (['Megahit'](https://github.com/voutcn/megahit))
 5. Preparation for binning of metagenomic co-assembly with (['Bowtie2'](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml)). Outbreak co-assembly is used to create an index which individual reads are mapped to determine depth information for downstream binning tools. 
