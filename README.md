@@ -17,31 +17,32 @@
 
 ## Introduction
 
-**nf-core/uno** is a bioinformatics pipeline that ...
+**nf-core/uno** is a bioinformatics pipeline for the co-assembly, binning, and read mapping of mNGS outbreak samples from the **The UnO project** 
 
 <!-- TODO nf-core:
    Complete this sentence with a 2-3 sentence summary of what types of data the pipeline ingests, a brief overview of the
    major pipeline sections and the types of output it produces. You're giving an overview to someone new
    to nf-core here, in 15-20 seconds. For an example, see https://github.com/nf-core/rnaseq/blob/master/README.md#introduction
 -->
-
+## Pipeline summary
+UnO is an mNGS bioinformatics pipeline that supports **The UnO Project**. UnO is the second tier The UnO project which analyzes set of mNGS reads from a well-characterized outbreak. The draft UnO pipeline takes as input outbreak sets of mNGS reads. Reads are co-assembled into a single outbreak assembly and then binned into Metagenomic Assembled Genomes (MAGs). Individual mNGS reads are mapped back to MAGs to identify individual sample contributions. MAGs in common across individual mNGS reads are chosen for further analysis and characterization.   
 <!-- TODO nf-core: Include a figure that guides the user through the major workflow steps. Many nf-core
      workflows use the "tube map" design for that. See https://nf-co.re/docs/contributing/design_guidelines#examples for examples.   -->
 <!-- TODO nf-core: Fill in short bullet-pointed list of the default steps in the pipeline -->
 
 1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
-2. Perform qaulity and adapter trimming on raw reads (['Trimmomatic']) (http://www.usadellab.org/cms/?page=trimmomatic)
+2. Perform quality and adapter trimming on raw reads (['Trimmomatic']) (http://www.usadellab.org/cms/?page=trimmomatic)
 3. Read QC on trimmed reads
-4. Co-assemble mNGS reads from outbreak dataset (['Megahit']) (https://github.com/voutcn/megahit)
-5. Preparation for binning of metagenomic co-assembly 
-  i. Build a bowtie index for co-assembly (['Bowtie2']) (http://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
-  ii. Align trimmed mNGS bowtie co-assembly index (['Bowtie2'])
-6. Present QC for raw reads ([`MultiQC`](http://multiqc.info/))
+4. Co-assemble mNGS reads from outbreak dataset into single outbreak assembly (['Megahit']) (https://github.com/voutcn/megahit)
+5. Preparation for binning of metagenomic co-assembly with (['Bowtie2']) (http://bowtie-bio.sourceforge.net/bowtie2/index.shtml). Outbreak co-assembly is used to create an index which individual reads are mapped to determine depth information for downstream binning tools. 
+6. (['MetaBat2']) and (['MaxBin2']) are used to bin MAGs. 
+6. Perform QC for raw reads ([`MultiQC`](http://multiqc.info/))
 
 ## Usage
 
 > [!NOTE]
 > If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline) with `-profile test` before running the workflow on actual data.
+nextflow run nf-core/uno --input /path/to/UnOsamplesheet.csv -profile <conda> -c <CONFIG> --outdir <OUTDIR>
 
 <!-- TODO nf-core: Describe the minimum required steps to execute the pipeline, e.g. how to prepare samplesheets.
      Explain what rows and columns represent. For instance (please edit as appropriate):
@@ -51,11 +52,13 @@ First, prepare a samplesheet with your input data that looks as follows:
 `samplesheet.csv`:
 
 ```csv
-sample,fastq_1,fastq_2
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
+sample,group,short_reads_1,short_reads_2,
+SAMPLE1,UnO,/path/to/reads/SAMPLE1_1.fastq.gz,/path/to/reads/SAMPLE1_2.fastq.gz,
+SAMPLE2,UnO,/path/to/reads/SAMPLE2_1.fastq.gz,/path/to/reads/SAMPLE2_2.fastq.gz,
+SAMPLE3,UnO,/path/to/reads/SAMPLE3_1.fastq.gz,/path/to/reads/SAMPLE3_2.fastq.gz,
 ```
 
-Each row represents a fastq file (single-end) or a pair of fastq files (paired end).
+Each row represents a pair of fastq files (paired end).
 
 -->
 
@@ -65,7 +68,7 @@ Now, you can run the pipeline using:
 
 ```bash
 nextflow run nf-core/uno \
-   -profile <docker/singularity/.../institute> \
+   -profile <docker/singularity/conda/institute> \
    --input samplesheet.csv \
    --outdir <OUTDIR>
 ```
@@ -78,6 +81,7 @@ For more details and further functionality, please refer to the [usage documenta
 
 ## Pipeline output
 
+Current output of the draft UnO output consists of the user specified <OUTDIR> with following directories: fastqc, trimmomatic, bowtie2, Assembly, GenomeBinning, convert, multiqc, pipeline_info. 
 To see the results of an example test run with a full size dataset refer to the [results](https://nf-co.re/uno/results) tab on the nf-core website pipeline page.
 For more details about the output files and reports, please refer to the
 [output documentation](https://nf-co.re/uno/output).
