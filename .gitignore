@@ -6,5 +6,5 @@ results/
 testing/
 testing*
 *.pyc
-results_full_length/
-results_test/
+results*
+cdc-dev.config
