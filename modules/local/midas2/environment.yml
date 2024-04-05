@@ -1,0 +1,9 @@
+name: midas2
+channels:
+  - zhaoc1
+  - conda-forge
+  - bioconda
+  - anaconda
+  - defaults
+dependencies:
+  - midas2=1.0.0

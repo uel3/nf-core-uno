@@ -35,7 +35,9 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 //
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
+
 include { INPUT_CHECK  } from '../subworkflows/local/input_check'
+include { MIDAS2       } from '../subworkflows/local/midas2'
 include { BINNING_PREP } from '../subworkflows/local/binning_prep'
 include { BINNING      } from '../subworkflows/local/binning'
 /*
@@ -75,6 +77,10 @@ workflow UNO {
 
     ch_raw_short_reads  = INPUT_CHECK.out.raw_short_reads
     ch_raw_long_reads   = INPUT_CHECK.out.raw_long_reads
+    
+    MIDAS2 (
+        
+    )
   
     // TODO: OPTIONAL, you can use nf-validation plugin to create an input channel from the samplesheet with Channel.fromSamplesheet("input")
     // See the documentation https://nextflow-io.github.io/nf-validation/samplesheets/fromSamplesheet/
