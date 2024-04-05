@@ -36,10 +36,11 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
 
-include { INPUT_CHECK  } from '../subworkflows/local/input_check'
-include { MIDAS2       } from '../subworkflows/local/midas2'
-include { BINNING_PREP } from '../subworkflows/local/binning_prep'
-include { BINNING      } from '../subworkflows/local/binning'
+include { INPUT_CHECK        } from '../subworkflows/local/input_check'
+include { MIDAS2             } from '../subworkflows/local/midas2'
+indlude { MIDAS2_SPECIES_SNP } from '../modules/local/midas2/speciessnps'
+include { BINNING_PREP       } from '../subworkflows/local/binning_prep'
+include { BINNING            } from '../subworkflows/local/binning'
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT NF-CORE MODULES/SUBWORKFLOWS
@@ -81,6 +82,7 @@ workflow UNO {
     MIDAS2 (
         
     )
+    MIDAS2_SPECIES_SNPS
   
     // TODO: OPTIONAL, you can use nf-validation plugin to create an input channel from the samplesheet with Channel.fromSamplesheet("input")
     // See the documentation https://nextflow-io.github.io/nf-validation/samplesheets/fromSamplesheet/
