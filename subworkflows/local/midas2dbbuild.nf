@@ -1,10 +1,8 @@
 include { MIDAS2_DB_BUILD } from '../../modules/local/midas2/builddb'
 
-workflow MIDAS2 {
+workflow MIDAS2_DB {
 
     take:
-    //assemblies           // channel: [ val(meta), path(assembly) ]
-    //reads                // channel: [ val(meta), [ reads ] ]
 
     main:
     // download the uhgg database 

@@ -1,4 +1,3 @@
-//needs to start here so I will need to format the above options elsewhere in my pipeline 
 process MIDAS2_DB_BUILD {
     //tag "$meta.id"
     label 'process_medium'

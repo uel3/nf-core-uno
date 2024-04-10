@@ -36,11 +36,11 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
 
-include { INPUT_CHECK        } from '../subworkflows/local/input_check'
-include { MIDAS2             } from '../subworkflows/local/midas2'
-indlude { MIDAS2_SPECIES_SNP } from '../modules/local/midas2/speciessnps'
-include { BINNING_PREP       } from '../subworkflows/local/binning_prep'
-include { BINNING            } from '../subworkflows/local/binning'
+include { INPUT_CHECK               } from '../subworkflows/local/input_check'
+include { MIDAS2_DB                 } from '../subworkflows/local/midas2dbbuild'
+include { MIDAS2_SPECIES_SNPS       } from '../modules/local/midas2/speciessnps'
+include { BINNING_PREP              } from '../subworkflows/local/binning_prep'
+include { BINNING                   } from '../subworkflows/local/binning'
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT NF-CORE MODULES/SUBWORKFLOWS
@@ -79,10 +79,14 @@ workflow UNO {
     ch_raw_short_reads  = INPUT_CHECK.out.raw_short_reads
     ch_raw_long_reads   = INPUT_CHECK.out.raw_long_reads
     
-    MIDAS2 (
+    MIDAS2_DB (
         
     )
-    MIDAS2_SPECIES_SNPS
+    ch_versions = ch_versions.mix(MIDAS2_DB.out.midas2_db_version.first())
+    MIDAS2_SPECIES_SNPS (MIDAS2_DB.out.midas2_db,
+        ch_raw_short_reads
+    )
+    ch_versions = ch_versions.mix(MIDAS2_SPECIES_SNPS.out.versions.first())
   
     // TODO: OPTIONAL, you can use nf-validation plugin to create an input channel from the samplesheet with Channel.fromSamplesheet("input")
     // See the documentation https://nextflow-io.github.io/nf-validation/samplesheets/fromSamplesheet/
@@ -94,7 +98,6 @@ workflow UNO {
     FASTQC_RAW (
         ch_raw_short_reads
     )
-    ch_versions = ch_versions.mix(FASTQC_RAW.out.versions.first())
     TRIMMOMATIC {
         ch_raw_short_reads
     }
@@ -153,6 +156,17 @@ workflow UNO {
         ch_bowtie2_assembly_multiqc = BINNING_PREP.out.bowtie2_assembly_multiqc
         ch_versions = ch_versions.mix(BINNING_PREP.out.bowtie2_version.first())
         ch_versions = ch_versions.mix(BINNING.out.versions)
+    ch_binning_results_bins = ch_binning_results_bins
+            .map { meta, bins ->
+                def meta_new = meta + [refinement:'unrefined']
+                [meta_new , bins]
+            }
+    // Need to modify binning.nf to output the unbinned, requires additional steps in subworkflow
+    //ch_binning_results_unbins = ch_binning_results_unbins
+            //.map { meta, bins ->
+                //def meta_new = meta + [refinement:'unrefined_unbinned']
+                //[meta_new, bins]
+            //}
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
     )
