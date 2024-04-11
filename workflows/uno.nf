@@ -36,11 +36,12 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
 
-include { INPUT_CHECK               } from '../subworkflows/local/input_check'
-include { MIDAS2_DB                 } from '../subworkflows/local/midas2dbbuild'
-include { MIDAS2_SPECIES_SNPS       } from '../modules/local/midas2/speciessnps'
-include { BINNING_PREP              } from '../subworkflows/local/binning_prep'
-include { BINNING                   } from '../subworkflows/local/binning'
+include { INPUT_CHECK                } from '../subworkflows/local/input_check'
+include { MIDAS2_DB                  } from '../subworkflows/local/midas2dbbuild'
+include { MIDAS2_SPECIES_SNPS        } from '../modules/local/midas2/speciessnps'
+include { BINNING_PREP               } from '../subworkflows/local/binning_prep'
+include { BINNING                    } from '../subworkflows/local/binning'
+include { DASTOOL_BINNING_REFINEMENT } from '../subworkflows/local/dastool_binning_refinement'
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT NF-CORE MODULES/SUBWORKFLOWS
@@ -156,6 +157,7 @@ workflow UNO {
         ch_bowtie2_assembly_multiqc = BINNING_PREP.out.bowtie2_assembly_multiqc
         ch_versions = ch_versions.mix(BINNING_PREP.out.bowtie2_version.first())
         ch_versions = ch_versions.mix(BINNING.out.versions)
+    ch_binning_results_bins = BINNING.out.bins
     ch_binning_results_bins = ch_binning_results_bins
             .map { meta, bins ->
                 def meta_new = meta + [refinement:'unrefined']
@@ -167,6 +169,28 @@ workflow UNO {
                 //def meta_new = meta + [refinement:'unrefined_unbinned']
                 //[meta_new, bins]
             //}
+    ch_contigs_for_binrefinement = BINNING_PREP.out.grouped_mappings
+                    .map{ meta, contigs, bam, bai -> [ meta, contigs ] }
+    DASTOOL_BINNING_REFINEMENT ( ch_contigs_for_binrefinement, ch_binning_results_bins )
+    ch_refined_bins = DASTOOL_BINNING_REFINEMENT.out.refined_bins
+    ch_refined_unbins = DASTOOL_BINNING_REFINEMENT.out.refined_unbins
+    ch_versions = ch_versions.mix(DASTOOL_BINNING_REFINEMENT.out.versions)
+
+   if ( params.postbinning_input == 'raw_bins_only' ) {
+        ch_input_for_postbinning_bins        = ch_binning_results_bins
+        ch_input_for_postbinning_bins_unbins = ch_binning_results_bins.mix(ch_binning_results_unbins)
+    } else if ( params.postbinning_input == 'refined_bins_only' ) {
+        ch_input_for_postbinning_bins        = ch_refined_bins
+        ch_input_for_postbinning_bins_unbins = ch_refined_bins.mix(ch_refined_unbins)
+    } else if ( params.postbinning_input == 'both' ) {
+        ch_all_bins = ch_binning_results_bins.mix(ch_refined_bins)
+        ch_input_for_postbinning_bins        = ch_all_bins
+        ch_input_for_postbinning_bins_unbins = ch_all_bins.mix(ch_binning_results_unbins).mix(ch_refined_unbins)
+    } else {
+        ch_input_for_postbinning_bins        = ch_binning_results_bins
+        ch_input_for_postbinning_bins_unbins = ch_binning_results_bins.mix(ch_binning_results_unbins)
+}
+
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
     )
