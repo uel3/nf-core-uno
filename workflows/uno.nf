@@ -164,11 +164,12 @@ workflow UNO {
                 [meta_new , bins]
             }
     // Need to modify binning.nf to output the unbinned, requires additional steps in subworkflow
-    //ch_binning_results_unbins = ch_binning_results_unbins
-            //.map { meta, bins ->
-                //def meta_new = meta + [refinement:'unrefined_unbinned']
-                //[meta_new, bins]
-            //}
+    ch_binning_results_unbins =  BINNING.out.unbinned
+    ch_binning_results_unbins = ch_binning_results_unbins
+            .map { meta, bins ->
+                def meta_new = meta + [refinement:'unrefined_unbinned']
+                [meta_new, bins]
+            }
     ch_contigs_for_binrefinement = BINNING_PREP.out.grouped_mappings
                     .map{ meta, contigs, bam, bai -> [ meta, contigs ] }
     DASTOOL_BINNING_REFINEMENT ( ch_contigs_for_binrefinement, ch_binning_results_bins )
