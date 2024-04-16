@@ -42,6 +42,7 @@ include { MIDAS2_SPECIES_SNPS        } from '../modules/local/midas2/speciessnps
 include { BINNING_PREP               } from '../subworkflows/local/binning_prep'
 include { BINNING                    } from '../subworkflows/local/binning'
 include { DASTOOL_BINNING_REFINEMENT } from '../subworkflows/local/dastool_binning_refinement'
+include { DEPTHS                     } from '../subworkflows/local/depths'
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT NF-CORE MODULES/SUBWORKFLOWS
@@ -79,16 +80,16 @@ workflow UNO {
 
     ch_raw_short_reads  = INPUT_CHECK.out.raw_short_reads
     ch_raw_long_reads   = INPUT_CHECK.out.raw_long_reads
-    
-    MIDAS2_DB (
+    if ( !params.skip_midas2 ){
+        MIDAS2_DB (
         
     )
-    ch_versions = ch_versions.mix(MIDAS2_DB.out.midas2_db_version.first())
-    MIDAS2_SPECIES_SNPS (MIDAS2_DB.out.midas2_db,
-        ch_raw_short_reads
+        ch_versions = ch_versions.mix(MIDAS2_DB.out.midas2_db_version.first())
+        MIDAS2_SPECIES_SNPS (MIDAS2_DB.out.midas2_db,
+            ch_raw_short_reads
     )
     ch_versions = ch_versions.mix(MIDAS2_SPECIES_SNPS.out.versions.first())
-  
+    }
     // TODO: OPTIONAL, you can use nf-validation plugin to create an input channel from the samplesheet with Channel.fromSamplesheet("input")
     // See the documentation https://nextflow-io.github.io/nf-validation/samplesheets/fromSamplesheet/
     // ! There is currently no tooling to help you write a sample sheet schema
@@ -163,7 +164,6 @@ workflow UNO {
                 def meta_new = meta + [refinement:'unrefined']
                 [meta_new , bins]
             }
-    // Need to modify binning.nf to output the unbinned, requires additional steps in subworkflow
     ch_binning_results_unbins =  BINNING.out.unbinned
     ch_binning_results_unbins = ch_binning_results_unbins
             .map { meta, bins ->
@@ -176,7 +176,7 @@ workflow UNO {
     ch_refined_bins = DASTOOL_BINNING_REFINEMENT.out.refined_bins
     ch_refined_unbins = DASTOOL_BINNING_REFINEMENT.out.refined_unbins
     ch_versions = ch_versions.mix(DASTOOL_BINNING_REFINEMENT.out.versions)
-
+    //including the following channel mapping options in case we want to look at raw bins or both eventually
    if ( params.postbinning_input == 'raw_bins_only' ) {
         ch_input_for_postbinning_bins        = ch_binning_results_bins
         ch_input_for_postbinning_bins_unbins = ch_binning_results_bins.mix(ch_binning_results_unbins)
@@ -190,7 +190,11 @@ workflow UNO {
     } else {
         ch_input_for_postbinning_bins        = ch_binning_results_bins
         ch_input_for_postbinning_bins_unbins = ch_binning_results_bins.mix(ch_binning_results_unbins)
-}
+    }
+    //map read depths to bins
+    DEPTHS ( ch_input_for_postbinning_bins_unbins, BINNING.out.metabat2depths, ch_short_reads_assembly )
+        ch_input_for_binsummary = DEPTHS.out.depths_summary
+        ch_versions = ch_versions.mix(DEPTHS.out.versions)
 
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')

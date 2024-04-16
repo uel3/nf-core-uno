@@ -60,9 +60,7 @@ workflow BINNING {
     CONVERT_DEPTHS ( ch_metabat2_input )
         ch_maxbin2_input = CONVERT_DEPTHS.out.output
             .map { meta, assembly, reads, depth ->
-                    def meta_new = meta.clone()
-                    meta_new['binner'] = 'MaxBin2'
-
+                    def meta_new = meta + [binner: 'MaxBin2']
                 [ meta_new, assembly, reads, depth ]
             }
         ch_versions = ch_versions.mix(CONVERT_DEPTHS.out.versions.first())
