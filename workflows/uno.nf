@@ -15,6 +15,10 @@ log.info logo + paramsSummaryLog(workflow) + citation
 
 WorkflowUno.initialise(params, log)
 
+// Check input path parameters to see if they exist
+def checkPathParamList = [ params.input, params.host_fasta ]
+for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     CONFIG FILES
@@ -39,10 +43,13 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 include { INPUT_CHECK                } from '../subworkflows/local/input_check'
 include { MIDAS2_DB                  } from '../subworkflows/local/midas2dbbuild'
 include { MIDAS2_SPECIES_SNPS        } from '../modules/local/midas2/speciessnps'
+include { BT2_HOST_REMOVAL_BUILD     } from '../modules/local/bowtie2/bt2_host_removal_build'
+include { BT2_HOST_REMOVAL_ALIGN     } from '../modules/local/bowtie2/bt2_host_removal_align'
 include { BINNING_PREP               } from '../subworkflows/local/binning_prep'
 include { BINNING                    } from '../subworkflows/local/binning'
 include { DASTOOL_BINNING_REFINEMENT } from '../subworkflows/local/dastool_binning_refinement'
 include { DEPTHS                     } from '../subworkflows/local/depths'
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT NF-CORE MODULES/SUBWORKFLOWS
@@ -58,6 +65,21 @@ include { TRIMMOMATIC                           } from '../modules/nf-core/trimm
 include { MULTIQC                               } from '../modules/nf-core/multiqc/main'
 include { MEGAHIT                               } from '../modules/nf-core/megahit/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS           } from '../modules/nf-core/custom/dumpsoftwareversions/main'
+
+/* --  Create channel for host reference  -- */
+if ( params.host_genome ) {
+    host_fasta = params.genomes[params.host_genome].fasta ?: false
+    ch_host_fasta = Channel
+        .value(file( "${host_fasta}" ))
+    host_bowtie2index = params.genomes[params.host_genome].bowtie2 ?: false
+    ch_host_bowtie2index = Channel
+        .value(file( "${host_bowtie2index}/*" ))
+} else if ( params.host_fasta ) {
+    ch_host_fasta = Channel
+        .value(file( "${params.host_fasta}" ))
+} else {
+    ch_host_fasta = Channel.empty()
+}
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RUN MAIN WORKFLOW
@@ -103,6 +125,8 @@ workflow UNO {
     TRIMMOMATIC {
         ch_raw_short_reads
     }
+    ch_short_reads_prepped = Channel.empty()
+    ch_short_reads_prepped = TRIMMOMATIC.out.trimmed_reads
     ch_versions = ch_versions.mix(TRIMMOMATIC.out.versions.first())
     //grouped_reads_ch = TRIMMOMATIC
         //.out
@@ -123,11 +147,35 @@ workflow UNO {
 
           //[groupedMeta, reads1, reads2]
        // }
+       //BT2_HOST_REMOVAL_BUILD only runs if a host_fasta is provided instead of host_genome
+    if (params.host_fasta){
+            BT2_HOST_REMOVAL_BUILD (
+                ch_host_fasta
+            )
+            ch_host_bowtie2index = BT2_HOST_REMOVAL_BUILD.out.index
+        }
+        ch_bowtie2_removal_host_multiqc = Channel.empty()
+        if (params.host_fasta || params.host_genome){
+            BT2_HOST_REMOVAL_ALIGN (
+                ch_short_reads_prepped,
+                ch_host_bowtie2index
+            )
+            ch_short_reads_hostremoved = BT2_HOST_REMOVAL_ALIGN.out.reads
+            ch_bowtie2_removal_host_multiqc = BT2_HOST_REMOVAL_ALIGN.out.log
+            ch_versions = ch_versions.mix(BT2_HOST_REMOVAL_ALIGN.out.versions.first())
+        } else {
+            ch_short_reads_hostremoved = ch_short_reads_prepped
+        }
     FASTQC_TRIMMED {
-        TRIMMOMATIC.out.trimmed_reads
+        ch_short_reads_hostremoved
     }
     ch_short_reads_assembly = Channel.empty()
-    ch_short_reads_assembly = TRIMMOMATIC.out.trimmed_reads
+    ch_short_reads_assembly = BT2_HOST_REMOVAL_ALIGN.out.reads
+        .map {meta, reads ->
+            def meta_new = meta - meta.subMap('run')
+            [ meta_new, reads ]
+        }
+    
     /*
     CO-ASSEMBLY OF TRIMMED READS 
     */
@@ -143,6 +191,8 @@ workflow UNO {
                 }
             // long reads
             // group and set group as new id
+    ch_short_reads_assembly.view()
+    ch_short_reads_grouped.view()
     ch_assemblies = Channel.empty()
     MEGAHIT ( ch_short_reads_grouped )
             ch_megahit_assemblies = MEGAHIT.out.assembly
