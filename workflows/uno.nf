@@ -170,7 +170,7 @@ workflow UNO {
         ch_short_reads_hostremoved
     }
     ch_short_reads_assembly = Channel.empty()
-    ch_short_reads_assembly = BT2_HOST_REMOVAL_ALIGN.out.reads
+    ch_short_reads_assembly = ch_short_reads_hostremoved
         .map {meta, reads ->
             def meta_new = meta - meta.subMap('run')
             [ meta_new, reads ]
@@ -191,8 +191,7 @@ workflow UNO {
                 }
             // long reads
             // group and set group as new id
-    ch_short_reads_assembly.view()
-    ch_short_reads_grouped.view()
+    
     ch_assemblies = Channel.empty()
     MEGAHIT ( ch_short_reads_grouped )
             ch_megahit_assemblies = MEGAHIT.out.assembly
