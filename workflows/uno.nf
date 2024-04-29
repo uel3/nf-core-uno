@@ -153,19 +153,19 @@ workflow UNO {
                 ch_host_fasta
             )
             ch_host_bowtie2index = BT2_HOST_REMOVAL_BUILD.out.index
-        }
-        ch_bowtie2_removal_host_multiqc = Channel.empty()
-        if (params.host_fasta || params.host_genome){
-            BT2_HOST_REMOVAL_ALIGN (
-                ch_short_reads_prepped,
-                ch_host_bowtie2index
-            )
-            ch_short_reads_hostremoved = BT2_HOST_REMOVAL_ALIGN.out.reads
-            ch_bowtie2_removal_host_multiqc = BT2_HOST_REMOVAL_ALIGN.out.log
-            ch_versions = ch_versions.mix(BT2_HOST_REMOVAL_ALIGN.out.versions.first())
-        } else {
-            ch_short_reads_hostremoved = ch_short_reads_prepped
-        }
+    }
+    ch_bowtie2_removal_host_multiqc = Channel.empty()
+    if (params.host_fasta || params.host_genome){
+        BT2_HOST_REMOVAL_ALIGN (
+            ch_short_reads_prepped,
+            ch_host_bowtie2index
+        )
+        ch_short_reads_hostremoved = BT2_HOST_REMOVAL_ALIGN.out.reads
+        ch_bowtie2_removal_host_multiqc = BT2_HOST_REMOVAL_ALIGN.out.log
+        ch_versions = ch_versions.mix(BT2_HOST_REMOVAL_ALIGN.out.versions.first())
+    } else {
+        ch_short_reads_hostremoved = ch_short_reads_prepped
+    }
     FASTQC_TRIMMED {
         ch_short_reads_hostremoved
     }
@@ -179,16 +179,23 @@ workflow UNO {
     /*
     CO-ASSEMBLY OF TRIMMED READS 
     */
-    ch_short_reads_grouped = ch_short_reads_assembly
-                .map { meta, reads -> [ meta.group, meta, reads ] }
-                .groupTuple(by: 0)
-                .map { group, metas, reads ->
-                    //params.bbnorm
-                    def meta         = [:]
-                    meta.id          = "group-$group"
-                    meta.group       = group
-                    [ meta, reads.collect { it[0] }, reads.collect { it[1] } ]
-                }
+    if (params.coassemble_group) {
+            // short reads
+            // group and set group as new id
+        ch_short_reads_grouped = ch_short_reads_assembly
+                    .map { meta, reads -> [ meta.group, meta, reads ] }
+                    .groupTuple(by: 0)
+                    .map { group, metas, reads ->
+                        //params.bbnorm
+                        def meta         = [:]
+                        meta.id          = "group-$group"
+                        meta.group       = group
+                        [ meta, reads.collect { it[0] }, reads.collect { it[1] } ]
+                    }
+    } else {
+            ch_short_reads_grouped = ch_short_reads_assembly
+                .map { meta, reads -> [ meta, [ reads[0] ], [ reads[1] ] ] }
+    }
             // long reads
             // group and set group as new id
     

@@ -16,11 +16,22 @@ workflow BINNING_PREP {
     main:
     // build bowtie2 index from coassembly of all reads using group 
     BOWTIE2_BUILDASSEMBLYINDEX (assemblies)
+    if (params.binning_map_mode == 'group'){
+        // combine assemblies with reads of all samples
         ch_reads_bowtie2 = reads.map{ meta, reads -> [ meta.group, meta, reads] }
         ch_bowtie2_input = BOWTIE2_BUILDASSEMBLYINDEX.out.bt2_index
             .map {meta, assembly, index -> [meta.group, meta, assembly, index ] }
             .combine(ch_reads_bowtie2, by:0)
             .map {group, assembly_meta, assembly, index, reads_meta, reads -> [assembly_meta, assembly, index, reads_meta, reads ]}
+    } else {
+        // i.e. --binning_map_mode 'own'
+        // combine assemblies (not co-assembled) with reads from own sample
+        ch_reads_bowtie2 = reads.map{ meta, reads -> [ meta.id, meta, reads ] }
+        ch_bowtie2_input = BOWTIE2_BUILDASSEMBLYINDEX.out.bt2_index
+            .map { meta, assembly, index -> [ meta.id, meta, assembly, index ] }
+            .combine(ch_reads_bowtie2, by: 0)
+            .map { id, assembly_meta, assembly, index, reads_meta, reads -> [ assembly_meta, assembly, index, reads_meta, reads ] }
+    }
     
     BOWTIE2_ALIGNASSEMBLY (ch_bowtie2_input)
     ch_grouped_mappings = BOWTIE2_ALIGNASSEMBLY.out.mappings
