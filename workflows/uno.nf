@@ -49,7 +49,7 @@ include { BINNING_PREP               } from '../subworkflows/local/binning_prep'
 include { BINNING                    } from '../subworkflows/local/binning'
 include { DASTOOL_BINNING_REFINEMENT } from '../subworkflows/local/dastool_binning_refinement'
 include { DEPTHS                     } from '../subworkflows/local/depths'
-
+include { CHECKM_QC                  } from '../subworkflows/local/checkm_qc'
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT NF-CORE MODULES/SUBWORKFLOWS
@@ -59,6 +59,7 @@ include { DEPTHS                     } from '../subworkflows/local/depths'
 //
 // MODULE: Installed directly from nf-core/modules
 //
+include { ARIA2                                 } from '../modules/nf-core/aria2/main'
 include { FASTQC as FASTQC_RAW                  } from '../modules/nf-core/fastqc/main'
 include { FASTQC as FASTQC_TRIMMED              } from '../modules/nf-core/fastqc/main'
 include { TRIMMOMATIC                           } from '../modules/nf-core/trimmomatic/main'
@@ -80,6 +81,9 @@ if ( params.host_genome ) {
 } else {
     ch_host_fasta = Channel.empty()
 }
+if(params.checkm_db) {
+    ch_checkm_db = file(params.checkm_db, checkIfExists: true)
+}
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RUN MAIN WORKFLOW
@@ -92,6 +96,12 @@ def multiqc_report = []
 workflow UNO {
 
     ch_versions = Channel.empty()
+    // Get checkM database if not supplied
+
+    if ( !params.skip_binqc && !params.checkm_db ) {
+        ARIA2 (params.checkm_download_url)
+        ch_checkm_db = ARIA2.out.downloaded_file
+    }
 
     //
     // SUBWORKFLOW: Read in samplesheet, validate and stage input files
@@ -208,6 +218,9 @@ workflow UNO {
                 }
             ch_assemblies = ch_assemblies.mix(ch_megahit_assemblies)
             ch_versions = ch_versions.mix(MEGAHIT.out.versions.first())
+    
+    ch_checkm_summary           = Channel.empty()
+        
     BINNING_PREP ( ch_assemblies, ch_short_reads_assembly )
             ch_versions = ch_versions.mix(BINNING_PREP.out.bowtie2_version.first())
     BINNING (BINNING_PREP.out.grouped_mappings, ch_short_reads_assembly)
@@ -251,7 +264,20 @@ workflow UNO {
     DEPTHS ( ch_input_for_postbinning_bins_unbins, BINNING.out.metabat2depths, ch_short_reads_assembly )
         ch_input_for_binsummary = DEPTHS.out.depths_summary
         ch_versions = ch_versions.mix(DEPTHS.out.versions)
+    /*
+    * Bin QC for checking bin completeness with CHECKM
+    */
+    ch_input_bins_for_qc = ch_input_for_postbinning_bins_unbins.transpose()
+    if (!params.skip_binqc){
+         CHECKM_QC (
+                ch_input_bins_for_qc.groupTuple(),
+                ch_checkm_db
+            )
+            ch_checkm_summary = CHECKM_QC.out.summary
 
+            ch_versions = ch_versions.mix(CHECKM_QC.out.versions)
+    }
+    
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
     )
