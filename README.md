@@ -25,7 +25,7 @@
    to nf-core here, in 15-20 seconds. For an example, see https://github.com/nf-core/rnaseq/blob/master/README.md#introduction
 -->
 ## Pipeline summary
-UnO is an mNGS bioinformatics pipeline that supports **The UnO Project**. UnO is the second tier The UnO project which analyzes set of mNGS reads from a well-characterized outbreak. The draft UnO pipeline takes as input outbreak sets of mNGS reads. Reads are co-assembled into a single outbreak assembly and then binned into Metagenomic Assembled Genomes (MAGs). Individual mNGS reads are mapped back to MAGs to identify individual sample contributions. MAGs in common across individual mNGS reads are chosen for further analysis and characterization.   
+UnO is an mNGS bioinformatics pipeline that supports **The UnO Project**. nf-core UnO is the second tier The UnO project which analyzes set of mNGS reads from a well-characterized outbreak. The draft UnO pipeline takes as input outbreak sets of mNGS reads. Reads are co-assembled into a single outbreak assembly and then binned into Metagenomic Assembled Genomes (MAGs). Individual mNGS reads are mapped back to MAGs to identify individual sample contributions. MAGs in common across individual mNGS reads are chosen for further analysis and characterization.   
 <!-- TODO nf-core: Include a figure that guides the user through the major workflow steps. Many nf-core
      workflows use the "tube map" design for that. See https://nf-co.re/docs/contributing/design_guidelines#examples for examples.   -->
 <!-- TODO nf-core: Fill in short bullet-pointed list of the default steps in the pipeline -->
