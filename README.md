@@ -30,16 +30,16 @@ UnO is an mNGS bioinformatics pipeline that supports **The UnO Project**. nf-cor
      workflows use the "tube map" design for that. See https://nf-co.re/docs/contributing/design_guidelines#examples for examples.   -->
 <!-- TODO nf-core: Fill in short bullet-pointed list of the default steps in the pipeline -->
 
-1. Inital reference-based taxonomic classfication of reads is performed using (['MIDAS2'](https://github.com/czbiohub-sf/MIDAS2))
+1. Inital reference-based taxonomic classfication of reads is performed using ([`MIDAS2`](https://github.com/czbiohub-sf/MIDAS2))
 2. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
 3. Perform quality and adapter trimming on raw reads ([`Trimmomatic`](http://www.usadellab.org/cms/?page=trimmomatic))
 4. Read QC on trimmed reads
 5. Co-assemble mNGS reads from outbreak dataset into single outbreak assembly ([`Megahit`](https://github.com/voutcn/megahit))
 6. Preparation for binning of metagenomic co-assembly with ([`Bowtie2`](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml)). Outbreak co-assembly is used to create an index which individual reads are mapped to determine depth information for downstream binning tools. 
 7. ([`MetaBat2`](https://bitbucket.org/berkeleylab/metabat/src/master/)) and ([`MaxBin2`](https://sourceforge.net/projects/maxbin2/)) are used to bin MAGs.
-8. (['DAStool'](https://github.com/cmks/DAS_Tool)) is used to refine bins.
+8. ([`DAStool`](https://github.com/cmks/DAS_Tool)) is used to refine bins.
 9. ([`Bowtie2`](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml)) is used to map individual reads back to refined bins to identify MAGs in common across outbreak samples.
-10. (['CheckM'](https://ecogenomics.github.io/CheckM/)) is used to asses quality of refined bins. 
+10. ([`CheckM`](https://ecogenomics.github.io/CheckM/)) is used to asses quality of refined bins. 
 11. ([`MultiQC`](http://multiqc.info/)) is used to summarize some of the findings and software versions.
 
 ## Usage
