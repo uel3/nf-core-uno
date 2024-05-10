@@ -63,12 +63,11 @@ nextflow run nf-core/uno \
 > Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration _**except for parameters**_;
 > see [docs](https://nf-co.re/usage/configuration#custom-configuration-files).
 
-For more details and further functionality, please refer to the [usage documentation](https://nf-co.re/uno/usage) and the [parameter documentation](https://nf-co.re/uno/parameters).
+For more details and further functionality, please refer to the [usage documentation](https://github.com/uel3/nf-core-uno/blob/master/docs/usage.md) and the [parameter documentation](https://github.com/uel3/nf-core-uno/blob/master/docs/parameters.md).
 
 ## Pipeline output
 
-Current output of the draft UnO output consists of the user specified <OUTDIR> with following directories: fastqc, trimmomatic, bowtie2, Assembly, GenomeBinning, convert, multiqc, pipeline_info. 
-To see the results of an example test run with a full size dataset refer to the [results](https://nf-co.re/uno/results) tab on the nf-core website pipeline page.
+Current output of the draft UnO output consists of the user specified <OUTDIR> with following directories: Assembly, FastQC, GenomeBinning, multiqc, pipeline_info, QC_shortreads, and Trimmomatic. 
 For more details about the output files and reports, please refer to the
 [output documentation](https://github.com/uel3/nf-core-uno/wiki/Output).
 
@@ -84,7 +83,6 @@ We thank the following people for their extensive assistance in the development 
 
 If you would like to contribute to this pipeline, please see the [contributing guidelines](.github/CONTRIBUTING.md).
 
-For further information or help, don't hesitate to get in touch on the [Slack `#uno` channel](https://nfcore.slack.com/channels/uno) (you can join with [this invite](https://nf-co.re/join/slack)).
 
 ## Citations
 
