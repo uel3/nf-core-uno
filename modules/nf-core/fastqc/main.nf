@@ -9,6 +9,7 @@ process FASTQC {
 
     input:
     tuple val(meta), path(reads)
+    val(type) // Specify the type of FastQC analysis (raw or trimmed)
 
     output:
     tuple val(meta), path("*.html"), emit: html
@@ -20,7 +21,7 @@ process FASTQC {
 
     script:
     def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.id}_${type}"
     // Make list of old name and new name pairs to use for renaming in the bash while loop
     def old_new_pairs = reads instanceof Path || reads.size() == 1 ? [[ reads, "${prefix}.${reads.extension}" ]] : reads.withIndex().collect { entry, index -> [ entry, "${prefix}_${index + 1}.${entry.extension}" ] }
     def rename_to = old_new_pairs*.join(' ').join(' ')
@@ -42,7 +43,7 @@ process FASTQC {
     """
 
     stub:
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.id}_${type}"
     """
     touch ${prefix}.html
     touch ${prefix}.zip

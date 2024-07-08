@@ -73,5 +73,6 @@ workflow DEPTHS {
 
     emit:
     depths_summary  = MAG_DEPTHS_SUMMARY.out.summary
+    heatmap         = MAG_DEPTHS_PLOT.out.heatmap 
     versions        = ch_versions
 }

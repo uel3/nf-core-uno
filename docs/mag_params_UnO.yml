@@ -1,0 +1,13 @@
+# params to pass into nf-core-mag for analysis similar to nf-core-uno
+nextflow run nf-core/mag \
+  --input samplesheet.csv \
+  --outdir ./results \
+  -params-file mag_params_UnO.yml \
+  -profile conda 
+
+ # params
+ host_genome
+ coassemble_group 
+ binning_map_mode
+ refine_bins_dastool
+ postbinning_input

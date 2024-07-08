@@ -40,16 +40,20 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
 
-include { INPUT_CHECK                } from '../subworkflows/local/input_check'
-include { MIDAS2_DB                  } from '../subworkflows/local/midas2dbbuild'
-include { MIDAS2_SPECIES_SNPS        } from '../modules/local/midas2/speciessnps'
-include { BT2_HOST_REMOVAL_BUILD     } from '../modules/local/bowtie2/bt2_host_removal_build'
-include { BT2_HOST_REMOVAL_ALIGN     } from '../modules/local/bowtie2/bt2_host_removal_align'
-include { BINNING_PREP               } from '../subworkflows/local/binning_prep'
-include { BINNING                    } from '../subworkflows/local/binning'
-include { DASTOOL_BINNING_REFINEMENT } from '../subworkflows/local/dastool_binning_refinement'
-include { DEPTHS                     } from '../subworkflows/local/depths'
-include { CHECKM_QC                  } from '../subworkflows/local/checkm_qc'
+
+
+include { INPUT_CHECK                   } from '../subworkflows/local/input_check'
+include { MIDAS2_DB                     } from '../subworkflows/local/midas2dbbuild'
+include { MIDAS2_SPECIES_SNPS           } from '../modules/local/midas2/speciessnps'
+include { MIDAS2_PARSE                  } from '../modules/local/midas2/parse'
+include { BT2_HOST_REMOVAL_BUILD        } from '../modules/local/bowtie2/bt2_host_removal_build'
+include { BT2_HOST_REMOVAL_ALIGN        } from '../modules/local/bowtie2/bt2_host_removal_align'
+//include { BT2_HOST_REMOVAL_ALIGN_VERIFY } from '../modules/local/bowtie2/bt2_host_removal_align_verify'
+include { BINNING_PREP                  } from '../subworkflows/local/binning_prep'
+include { BINNING                       } from '../subworkflows/local/binning'
+include { DASTOOL_BINNING_REFINEMENT    } from '../subworkflows/local/dastool_binning_refinement'
+include { DEPTHS                        } from '../subworkflows/local/depths'
+include { CHECKM_QC                     } from '../subworkflows/local/checkm_qc'
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT NF-CORE MODULES/SUBWORKFLOWS
@@ -81,7 +85,7 @@ if ( params.host_genome ) {
 } else {
     ch_host_fasta = Channel.empty()
 }
-if(params.checkm_db) {
+if (params.checkm_db) {
     ch_checkm_db = file(params.checkm_db, checkIfExists: true)
 }
 /*
@@ -96,6 +100,7 @@ def multiqc_report = []
 workflow UNO {
 
     ch_versions = Channel.empty()
+    ch_multiqc_files = Channel.empty()
     // Get checkM database if not supplied
 
     if ( !params.skip_binqc && !params.checkm_db ) {
@@ -121,7 +126,12 @@ workflow UNO {
             ch_raw_short_reads
     )
     ch_versions = ch_versions.mix(MIDAS2_SPECIES_SNPS.out.versions.first())
+        MIDAS2_PARSE (MIDAS2_DB.out.midas2_db_metadata, 
+            MIDAS2_SPECIES_SNPS.out.midas2_snps
+    )
+        ch_versions = ch_versions.mix(MIDAS2_PARSE.out.versions.first())
     }
+
     // TODO: OPTIONAL, you can use nf-validation plugin to create an input channel from the samplesheet with Channel.fromSamplesheet("input")
     // See the documentation https://nextflow-io.github.io/nf-validation/samplesheets/fromSamplesheet/
     // ! There is currently no tooling to help you write a sample sheet schema
@@ -130,7 +140,8 @@ workflow UNO {
     // MODULE: Run FastQC
     //
     FASTQC_RAW (
-        ch_raw_short_reads
+        ch_raw_short_reads,
+        'raw'
     )
     TRIMMOMATIC {
         ch_raw_short_reads
@@ -173,12 +184,20 @@ workflow UNO {
         ch_short_reads_hostremoved = BT2_HOST_REMOVAL_ALIGN.out.reads
         ch_bowtie2_removal_host_multiqc = BT2_HOST_REMOVAL_ALIGN.out.log
         ch_versions = ch_versions.mix(BT2_HOST_REMOVAL_ALIGN.out.versions.first())
+        
+        //BT2_HOST_REMOVAL_ALIGN_VERIFY (
+            //ch_short_reads_hostremoved,
+            //ch_host_bowtie2index
+        //)
+        //ch_bowtie2_removal_host_verify_multiqc = BT2_HOST_REMOVAL_ALIGN_VERIFY.out.log
+        //ch_versions = ch_versions.mix(BT2_HOST_REMOVAL_ALIGN_VERIFY.out.versions.first())
     } else {
         ch_short_reads_hostremoved = ch_short_reads_prepped
     }
-    FASTQC_TRIMMED {
-        ch_short_reads_hostremoved
-    }
+    FASTQC_TRIMMED (
+        ch_short_reads_hostremoved,
+        'trimmed'
+    )
     ch_short_reads_assembly = Channel.empty()
     ch_short_reads_assembly = ch_short_reads_hostremoved
         .map {meta, reads ->
@@ -219,7 +238,7 @@ workflow UNO {
             ch_assemblies = ch_assemblies.mix(ch_megahit_assemblies)
             ch_versions = ch_versions.mix(MEGAHIT.out.versions.first())
     
-    ch_checkm_summary           = Channel.empty()
+    ch_checkm_summary = Channel.empty()
         
     BINNING_PREP ( ch_assemblies, ch_short_reads_assembly )
             ch_versions = ch_versions.mix(BINNING_PREP.out.bowtie2_version.first())
@@ -290,12 +309,16 @@ workflow UNO {
     methods_description    = WorkflowUno.methodsDescriptionText(workflow, ch_multiqc_custom_methods_description, params)
     ch_methods_description = Channel.value(methods_description)
 
-    ch_multiqc_files = Channel.empty()
     ch_multiqc_files = ch_multiqc_files.mix(ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
     ch_multiqc_files = ch_multiqc_files.mix(ch_methods_description.collectFile(name: 'methods_description_mqc.yaml'))
     ch_multiqc_files = ch_multiqc_files.mix(CUSTOM_DUMPSOFTWAREVERSIONS.out.mqc_yml.collect())
     ch_multiqc_files = ch_multiqc_files.mix(FASTQC_RAW.out.raw_reads.collect{it[1]}.ifEmpty([]))
-
+    if ( !params.skip_midas2 ){ch_multiqc_files = ch_multiqc_files.mix(MIDAS2_PARSE.out.snps_id_list.collect{it[1]}.ifEmpty([]))}
+    ch_multiqc_files = ch_multiqc_files.mix(BT2_HOST_REMOVAL_ALIGN.out.log.collect{it[1]}.ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(FASTQC_TRIMMED.out.raw_reads.collect{it[1]}.ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(DEPTHS.out.heatmap.map{ it -> it[1] }.collect().ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(CHECKM_QC.out.summary.collect().ifEmpty([]))
+    ch_multiqc_files.view { "MultiQC files: $it" }
     MULTIQC (
         ch_multiqc_files.collect(),
         ch_multiqc_config.toList(),

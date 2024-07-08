@@ -11,3 +11,166 @@ report_section_order:
     order: -1002
 
 export_plots: true
+run_modules:
+  - fastqc
+  - bowtie2
+  - custom_content
+
+## Module order
+top_modules:
+  - custom_content
+  - "fastqc":
+      name: "FastQC: raw reads"
+      path_filters_exclude:
+        - "*trimmed*"
+  - "fastqc":
+      name: "FastQC: after preprocessing"
+      info: "After trimming and illumina adapter removal."
+      path_filters:
+        - "*trimmed*"
+  - "bowtie2":
+      name: "Bowtie2: host removal"
+      info: "Mapping statistics of reads mapped to host for removal."
+      path_filters:
+        - "*_host_removed.bowtie2.log" 
+  
+custom_data:
+  midas2_parse:
+    id: "midas2_species_table"
+    section_name: "MIDAS2 Species Profiling Results"
+    plot_type: 'generalstats'
+    pconfig:
+      id: "midas2_species_table"
+      namespace: "MIDAS2 Species Profiling Results"
+    headers:
+      species_id:
+        description: "species_id"
+      genome_length: 
+        description: "genome_length"
+      covered_bases:
+        description: "covered_bases"
+      total_depth:
+        description: "total_depth"
+      aligned_reads:
+        description: "aligned_reads" 
+      mapped_reads:
+        description: "mapped_reads"
+      fraction_covered:
+        description: "fraction_covered"
+      mean_coverage:
+        description: "mean_coverage"
+      Lineage:
+        description: "Lineage"
+      Continent:
+        description: "Continent"
+    midas2_parse:
+      fn:"*_midas2_species_ID_mqc.tsv"
+  
+  depths:
+    file_format: "png"
+    section_name: "Sample Coverage of MAGs"
+    description: "Sample reads are mapped against the MAG bins. Only bins with reads mapped from all samples are of interest for downstream analysis."
+    plot_type: "image"
+    pconfig:
+      id: "heatmap_reads_bins"
+      title: "Read Coverage of Bins"
+      ylab: "Sample Reads"
+  
+  checkm_summary:
+    section_name: "CheckM: Bin QC"
+    description: "Quality control metrics for genome bins"
+    plot_type: 'generalstats'
+    pconfig:
+      id: "checkm_summary_table"
+      title: "CheckM Summary Table"
+      namespace: "CheckM Summary Table"
+    headers:
+      "Bin Id":
+        description: "Bin Id"
+      "Marker lineage":
+        description: "Marker lineage"
+      "# genomes":
+        description: "# genomes"
+      "# markers":
+        description: "# markers"
+      "# marker sets":
+        description: "# marker sets"
+      "Completeness":
+        description: "Completeness"
+      "Contamination":
+        description: "Contamination"
+      "Strain heterogeneity":
+        description:  "Strain heterogeneity"
+      "Genome size (bp)":
+        description: "Genome size (bp)"
+      "# ambiguous bases":
+        description: "# ambiguous bases"
+      "# scaffolds":
+        description: "# scaffolds"
+      "# contigs":
+        description: "# contigs"
+      "N50 (scaffolds)":
+        description: "N50 (scaffolds)"
+      "N50 (contigs)":
+        description: "N50 (contigs)"
+      "Mean scaffold length (bp)":
+        description: "Mean scaffold length (bp)"
+      "Mean contig length (bp)":
+        description: "Mean contig length (bp)"
+      "Longest scaffold (bp)":
+        description: "Longest scaffold (bp)"
+      "Longest contig (bp)":
+        description: "Longest contig (bp)"
+      "GC":
+        description: "GC"
+      "GC std (scaffolds > 1kbp)":
+        description: "GC std (scaffolds > 1kbp)"
+      "Coding density":
+        description: "Coding density"
+      "Translation table":
+        description: "Translation table"
+      "# predicted genes":
+        description: "# predicted genes"
+    checkm_summary:
+        fn: "*checkm_summary_mqc.tsv"
+
+## General Stats customisation
+table_columns_visible:
+  FastQC:
+    percent_duplicates: True
+    percent_gc: True
+    avg_sequence_length: True
+    median_sequence_length: True
+    total_sequences: True
+    percent_fails: True
+  "Bowtie2: host removal":
+    overall_alignment_rate: True
+
+table_columns_placement:
+  FastQC:
+    percent_duplicates: 1000
+    percent_gc: 1100
+    avg_sequence_length: 1200
+    median_sequence_length: 1300
+    total_sequences: 1400
+    percent_fails: 1500
+  "Bowtie2: host removal":
+    overall_alignment_rate: 2000
+
+table_columns_name:
+  FastQC:
+    percent_duplicates: "% Duplicates"
+    percent_gc: "% GC"
+    avg_sequence_length: "Avg. Length"
+    median_sequence_length: "Median Length"
+    total_sequences: "M Seqs"
+    percent_fails: "% Fails"
+  "Bowtie2: host removal":
+    overall_alignment_rate: "Alignment Rate"
+
+custom_table_header_config:
+  general_stats_table:
+    "Total length":
+      hidden: True
+    N50:
+      hidden: True

@@ -1,7 +1,7 @@
 /*
  * Bowtie2 for read removal
  */
-process BT2_HOST_REMOVAL_ALIGN {
+process BT2_HOST_REMOVAL_ALIGN_VERIFY {
     tag "$meta.id"
 
     conda "bioconda::bowtie2=2.4.2"
@@ -14,9 +14,9 @@ process BT2_HOST_REMOVAL_ALIGN {
     path  index
 
     output:
-    tuple val(meta), path("*.unmapped*.fastq.gz") , emit: reads
-    path  "*.mapped*.read_ids.txt", optional:true , emit: read_ids
-    tuple val(meta), path("*.bowtie2.log")        , emit: log
+    //tuple val(meta), path("*.unmapped*.fastq.gz") , emit: reads
+    //path  "*.mapped*.read_ids.txt", optional:true , emit: read_ids
+    tuple val(meta), path("*.bowtie2_verify.log") , emit: log
     path "versions.yml"                           , emit: versions
 
     script:
@@ -24,7 +24,6 @@ process BT2_HOST_REMOVAL_ALIGN {
     def args2 = task.ext.args2 ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     def save_ids = (args2.contains('--host_removal_save_ids')) ? "Y" : "N"
-    
     """
     bowtie2 -p ${task.cpus} \
             -x ${index[0].getSimpleName()} \
@@ -33,12 +32,13 @@ process BT2_HOST_REMOVAL_ALIGN {
             --un-conc-gz ${prefix}.unmapped_%.fastq.gz \
             --al-conc-gz ${prefix}.mapped_%.fastq.gz \
             1> /dev/null \
-            2> ${prefix}.bowtie2.log
+            2> ${prefix}.bowtie2_verify.log
     if [ ${save_ids} = "Y" ] ; then
         gunzip -c ${prefix}.mapped_1.fastq.gz | awk '{if(NR%4==1) print substr(\$0, 2)}' | LC_ALL=C sort > ${prefix}.mapped_1.read_ids.txt
         gunzip -c ${prefix}.mapped_2.fastq.gz | awk '{if(NR%4==1) print substr(\$0, 2)}' | LC_ALL=C sort > ${prefix}.mapped_2.read_ids.txt
     fi
     rm -f ${prefix}.mapped_*.fastq.gz
+
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         bowtie2: \$(echo \$(bowtie2 --version 2>&1) | sed 's/^.*bowtie2-align-s version //; s/ .*\$//')

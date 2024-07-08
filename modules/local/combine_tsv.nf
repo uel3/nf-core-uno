@@ -16,7 +16,7 @@ process COMBINE_TSV {
     script:
     def prefix = task.ext.prefix ?: "bin_depths_summary_combined"
     """
-    bioawk '(NR == 1) || (FNR > 1)' ${bin_summaries} > ${prefix}.tsv
+    bioawk '(NR == 1) || (FNR > 1)' ${bin_summaries} > ${prefix}_mqc.tsv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

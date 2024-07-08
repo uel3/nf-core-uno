@@ -17,7 +17,7 @@ process MIDAS2_SPECIES_SNPS {
     path( "midas2_output/${meta.id}/species/species_profile.tsv" ), emit: species_id
     path( "midas2_output/${meta.id}/temp/*" ), optional: true //adding the optional: true keeps nf from throwing error
     path( "midas2_output/${meta.id}/snps/log.txt" ), emit: snps_log
-    path( "midas2_output/${meta.id}/snps/snps_summary.tsv"), emit: midas2_snps
+    tuple val(meta), path( "midas2_output/${meta.id}/snps/snps_summary.tsv"), emit: midas2_snps
     path( "midas2_output/${meta.id}/snps/*.snps.tsv.lz4" ), emit: per_species_pileup
     path( "midas2_output/${meta.id}/bt2_indexes/snps/*" ), optional: true
     path "versions.yml", emit: versions
