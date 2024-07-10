@@ -19,6 +19,11 @@ run_modules:
 ## Module order
 top_modules:
   - custom_content
+  - "bowtie2":
+      name: "Bowtie2: host removal"
+      info: "Mapping statistics of reads mapped to host for removal."
+      path_filters:
+        - "*_host_removed.bowtie2.log"   
   - "fastqc":
       name: "FastQC: raw reads"
       path_filters_exclude:
@@ -28,43 +33,15 @@ top_modules:
       info: "After trimming and illumina adapter removal."
       path_filters:
         - "*trimmed*"
-  - "bowtie2":
-      name: "Bowtie2: host removal"
-      info: "Mapping statistics of reads mapped to host for removal."
-      path_filters:
-        - "*_host_removed.bowtie2.log" 
-  
 custom_data:
-  midas2_parse:
-    id: "midas2_species_table"
-    section_name: "MIDAS2 Species Profiling Results"
-    plot_type: 'generalstats'
-    pconfig:
-      id: "midas2_species_table"
-      namespace: "MIDAS2 Species Profiling Results"
-    headers:
-      species_id:
-        description: "species_id"
-      genome_length: 
-        description: "genome_length"
-      covered_bases:
-        description: "covered_bases"
-      total_depth:
-        description: "total_depth"
-      aligned_reads:
-        description: "aligned_reads" 
-      mapped_reads:
-        description: "mapped_reads"
-      fraction_covered:
-        description: "fraction_covered"
-      mean_coverage:
-        description: "mean_coverage"
-      Lineage:
-        description: "Lineage"
-      Continent:
-        description: "Continent"
-    midas2_parse:
-      fn:"*_midas2_species_ID_mqc.tsv"
+  midas2_species_abundance:
+    file_format: 'yaml'
+    section_name: "MIDAS2 Species Abundance"
+    description: 'MIDAS2 species abundance results for all samples.'
+sp:
+  midas2_species_abundance:
+    fn: 'combined_midas2_report_mqc.yaml'
+    
   
   depths:
     file_format: "png"
@@ -76,101 +53,52 @@ custom_data:
       title: "Read Coverage of Bins"
       ylab: "Sample Reads"
   
-  checkm_summary:
-    section_name: "CheckM: Bin QC"
-    description: "Quality control metrics for genome bins"
-    plot_type: 'generalstats'
-    pconfig:
-      id: "checkm_summary_table"
-      title: "CheckM Summary Table"
-      namespace: "CheckM Summary Table"
-    headers:
-      "Bin Id":
-        description: "Bin Id"
-      "Marker lineage":
-        description: "Marker lineage"
-      "# genomes":
-        description: "# genomes"
-      "# markers":
-        description: "# markers"
-      "# marker sets":
-        description: "# marker sets"
-      "Completeness":
-        description: "Completeness"
-      "Contamination":
-        description: "Contamination"
-      "Strain heterogeneity":
-        description:  "Strain heterogeneity"
-      "Genome size (bp)":
-        description: "Genome size (bp)"
-      "# ambiguous bases":
-        description: "# ambiguous bases"
-      "# scaffolds":
-        description: "# scaffolds"
-      "# contigs":
-        description: "# contigs"
-      "N50 (scaffolds)":
-        description: "N50 (scaffolds)"
-      "N50 (contigs)":
-        description: "N50 (contigs)"
-      "Mean scaffold length (bp)":
-        description: "Mean scaffold length (bp)"
-      "Mean contig length (bp)":
-        description: "Mean contig length (bp)"
-      "Longest scaffold (bp)":
-        description: "Longest scaffold (bp)"
-      "Longest contig (bp)":
-        description: "Longest contig (bp)"
-      "GC":
-        description: "GC"
-      "GC std (scaffolds > 1kbp)":
-        description: "GC std (scaffolds > 1kbp)"
-      "Coding density":
-        description: "Coding density"
-      "Translation table":
-        description: "Translation table"
-      "# predicted genes":
-        description: "# predicted genes"
-    checkm_summary:
-        fn: "*checkm_summary_mqc.tsv"
+  checkm_multiqc_report:
+    section_name: "CheckM Statistics"
+    description: "Quality assessment of genome bins using CheckM."
+    plot_type: 'table'
+  checkm_multiqc_report:
+        fn: "*checkm_report_mqc.yaml"
+
 
 ## General Stats customisation
 table_columns_visible:
-  FastQC:
+  "FastQC: raw reads":
     percent_duplicates: True
-    percent_gc: True
+    avg_sequence_length: True
+    median_sequence_length: True
+    total_sequences: True
+    percent_fails: True
+  "FastQC: after preprocessing":
+    percent_duplicates: True
     avg_sequence_length: True
     median_sequence_length: True
     total_sequences: True
     percent_fails: True
   "Bowtie2: host removal":
-    overall_alignment_rate: True
+    overall_alignment_rate: False
 
 table_columns_placement:
-  FastQC:
+  "FastQC: raw reads":
     percent_duplicates: 1000
-    percent_gc: 1100
     avg_sequence_length: 1200
     median_sequence_length: 1300
     total_sequences: 1400
     percent_fails: 1500
-  "Bowtie2: host removal":
-    overall_alignment_rate: 2000
+  "FastQC: after preprocessing":
+    percent_duplicates: 2000
+    avg_sequence_length: 2200
+    median_sequence_length: 2300
+    total_sequences: 2400
+    percent_fails: 2500
 
 table_columns_name:
-  FastQC:
-    percent_duplicates: "% Duplicates"
+  "FastQC: raw reads":
+    percent_duplicates: "% Dups"
     percent_gc: "% GC"
-    avg_sequence_length: "Avg. Length"
-    median_sequence_length: "Median Length"
+    avg_sequence_length: "Avg. length"
+    median_sequence_length: "Median length" 
     total_sequences: "M Seqs"
     percent_fails: "% Fails"
   "Bowtie2: host removal":
     overall_alignment_rate: "Alignment Rate"
-
-custom_table_header_config:
-  general_stats_table:
-    "Total length":
-      hidden: True
-    N50:
-      hidden: True

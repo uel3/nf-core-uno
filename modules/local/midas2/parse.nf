@@ -14,16 +14,19 @@ process MIDAS2_PARSE {
     
 
     output:
-    tuple val(meta.id), path("${meta.id}_midas2_species_ID_mcq.tsv"), emit: snps_id_list
+    tuple val(meta.id), path("${meta.id}_midas2_species_ID_mqc.tsv"), emit: snps_id_list
     path "versions.yml", emit: versions
 
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     if [ -s "${midas2_snps}" ]; then
-        awk -F'\\t' 'NR==FNR{a[\$1]=\$0; next} \$1 in a{print "${meta.id}", a[\$1], \$18, \$19}' ${midas2_snps} ${midas2_metadata} > ${prefix}_midas2_species_ID_mcq.tsv
+        awk -F'\\t' 'NR==FNR{a[\$1]=\$18 "\\t" \$19; next}
+                     FNR==1{print "sample_name\\t" \$0 "\\tLineage\\tContinent"; next}
+                     {print "${meta.id}\\t" \$0 "\\t" (a[\$1] ? a[\$1] : "NA\\tNA")}' ${midas2_metadata} ${midas2_snps} > ${prefix}_midas2_species_ID_mqc.tsv
     else
-        echo "No MIDAS2 SNPs results for ${meta.id}" > ${meta.id}_midas2_species_ID_mcq.tsv
+        echo -e "sample_name\\terror\\tLineage\\tContinent" > ${meta.id}_midas2_species_ID_mqc.tsv
+        echo -e "${meta.id}\\tNo MIDAS2 SNPs results for ${meta.id}\\tNA\\tNA" >> ${meta.id}_midas2_species_ID_mqc.tsv
     fi
 
     cat <<-END_VERSIONS > versions.yml

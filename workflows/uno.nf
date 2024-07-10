@@ -54,6 +54,8 @@ include { BINNING                       } from '../subworkflows/local/binning'
 include { DASTOOL_BINNING_REFINEMENT    } from '../subworkflows/local/dastool_binning_refinement'
 include { DEPTHS                        } from '../subworkflows/local/depths'
 include { CHECKM_QC                     } from '../subworkflows/local/checkm_qc'
+include { CHECKM_MULTIQC_REPORT         } from '../modules/local/checkm_multiqc_report'
+include { COMBINE_MIDAS2_REPORTS        } from '../modules/local/combine_midas2_parse_multiqc'
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT NF-CORE MODULES/SUBWORKFLOWS
@@ -121,7 +123,7 @@ workflow UNO {
         MIDAS2_DB (
         
     )
-        ch_versions = ch_versions.mix(MIDAS2_DB.out.midas2_db_version.first())
+        ch_versions = ch_versions.mix(MIDAS2_DB.out.midas2_db_version)
         MIDAS2_SPECIES_SNPS (MIDAS2_DB.out.midas2_db,
             ch_raw_short_reads
     )
@@ -130,6 +132,9 @@ workflow UNO {
             MIDAS2_SPECIES_SNPS.out.midas2_snps
     )
         ch_versions = ch_versions.mix(MIDAS2_PARSE.out.versions.first())
+        midas2_reports = MIDAS2_PARSE.out.snps_id_list.map { it[1] }.collect()
+        COMBINE_MIDAS2_REPORTS (midas2_reports)
+        ch_versions = ch_versions.mix(COMBINE_MIDAS2_REPORTS.out.versions.first())
     }
 
     // TODO: OPTIONAL, you can use nf-validation plugin to create an input channel from the samplesheet with Channel.fromSamplesheet("input")
@@ -295,6 +300,9 @@ workflow UNO {
             ch_checkm_summary = CHECKM_QC.out.summary
 
             ch_versions = ch_versions.mix(CHECKM_QC.out.versions)
+        CHECKM_MULTIQC_REPORT(ch_checkm_summary)
+        ch_checkm_report = CHECKM_MULTIQC_REPORT.out.checkm_mqc_report
+        ch_versions = ch_versions.mix(CHECKM_MULTIQC_REPORT.out.versions)
     }
     
     CUSTOM_DUMPSOFTWAREVERSIONS (
@@ -313,11 +321,12 @@ workflow UNO {
     ch_multiqc_files = ch_multiqc_files.mix(ch_methods_description.collectFile(name: 'methods_description_mqc.yaml'))
     ch_multiqc_files = ch_multiqc_files.mix(CUSTOM_DUMPSOFTWAREVERSIONS.out.mqc_yml.collect())
     ch_multiqc_files = ch_multiqc_files.mix(FASTQC_RAW.out.raw_reads.collect{it[1]}.ifEmpty([]))
-    if ( !params.skip_midas2 ){ch_multiqc_files = ch_multiqc_files.mix(MIDAS2_PARSE.out.snps_id_list.collect{it[1]}.ifEmpty([]))}
-    ch_multiqc_files = ch_multiqc_files.mix(BT2_HOST_REMOVAL_ALIGN.out.log.collect{it[1]}.ifEmpty([]))
+    if ( !params.skip_midas2 ){ch_multiqc_files = ch_multiqc_files.mix(COMBINE_MIDAS2_REPORTS.out.combined_report.collect().ifEmpty([]))}
+    ch_multiqc_files = ch_multiqc_files.mix(TRIMMOMATIC.out.summary.collect{it[1]}.ifEmpty([]))
+    if ( params.host_fasta || params.host_genome ) {ch_multiqc_files = ch_multiqc_files.mix(BT2_HOST_REMOVAL_ALIGN.out.log.collect{it[1]}.ifEmpty([]))}
     ch_multiqc_files = ch_multiqc_files.mix(FASTQC_TRIMMED.out.raw_reads.collect{it[1]}.ifEmpty([]))
     ch_multiqc_files = ch_multiqc_files.mix(DEPTHS.out.heatmap.map{ it -> it[1] }.collect().ifEmpty([]))
-    ch_multiqc_files = ch_multiqc_files.mix(CHECKM_QC.out.summary.collect().ifEmpty([]))
+    if (!params.skip_binqc){ch_multiqc_files = ch_multiqc_files.mix(CHECKM_MULTIQC_REPORT.out.checkm_mqc_report.collect().ifEmpty([]))}
     ch_multiqc_files.view { "MultiQC files: $it" }
     MULTIQC (
         ch_multiqc_files.collect(),
