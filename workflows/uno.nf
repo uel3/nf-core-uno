@@ -52,6 +52,8 @@ include { BT2_HOST_REMOVAL_ALIGN        } from '../modules/local/bowtie2/bt2_hos
 include { BINNING_PREP                  } from '../subworkflows/local/binning_prep'
 include { BINNING                       } from '../subworkflows/local/binning'
 include { DASTOOL_BINNING_REFINEMENT    } from '../subworkflows/local/dastool_binning_refinement'
+//include { READ_DEPTHS                   } from '../subworkflows/local/read_depths'
+//include { PLOT_BIN_DEPTHS               } from '../subworkflows/local/plot_bin_depth'
 include { DEPTHS                        } from '../subworkflows/local/depths'
 include { CHECKM_QC                     } from '../subworkflows/local/checkm_qc'
 include { CHECKM_MULTIQC_REPORT         } from '../modules/local/checkm_multiqc_report'
@@ -268,6 +270,8 @@ workflow UNO {
     DASTOOL_BINNING_REFINEMENT ( ch_contigs_for_binrefinement, ch_binning_results_bins )
     ch_refined_bins = DASTOOL_BINNING_REFINEMENT.out.refined_bins
     ch_refined_unbins = DASTOOL_BINNING_REFINEMENT.out.refined_unbins
+    ch_contig2bin = DASTOOL_BINNING_REFINEMENT.out.contig2bin
+        .map { meta, file -> [ meta, file ] }
     ch_versions = ch_versions.mix(DASTOOL_BINNING_REFINEMENT.out.versions)
     //including the following channel mapping options in case we want to look at raw bins or both eventually
    if ( params.postbinning_input == 'raw_bins_only' ) {
@@ -284,10 +288,17 @@ workflow UNO {
         ch_input_for_postbinning_bins        = ch_binning_results_bins
         ch_input_for_postbinning_bins_unbins = ch_binning_results_bins.mix(ch_binning_results_unbins)
     }
-    //map read depths to bins
+    
     DEPTHS ( ch_input_for_postbinning_bins_unbins, BINNING.out.metabat2depths, ch_short_reads_assembly )
         ch_input_for_binsummary = DEPTHS.out.depths_summary
         ch_versions = ch_versions.mix(DEPTHS.out.versions)
+    //READ_DEPTHS ( ch_input_for_postbinning_bins_unbins, ch_short_reads_assembly )
+        //ch_input_for_plot = READ_DEPTHS.out.depths
+        //ch_versions = ch_versions.mix(READ_DEPTHS.out.versions)
+        
+    //PLOT_BIN_DEPTHS( ch_input_for_plot, ch_contig2bin )
+        //ch_versions = ch_versions.mix(PLOT_BIN_DEPTHS.out.versions)
+
     /*
     * Bin QC for checking bin completeness with CHECKM
     */
@@ -326,8 +337,9 @@ workflow UNO {
     if ( params.host_fasta || params.host_genome ) {ch_multiqc_files = ch_multiqc_files.mix(BT2_HOST_REMOVAL_ALIGN.out.log.collect{it[1]}.ifEmpty([]))}
     ch_multiqc_files = ch_multiqc_files.mix(FASTQC_TRIMMED.out.raw_reads.collect{it[1]}.ifEmpty([]))
     ch_multiqc_files = ch_multiqc_files.mix(DEPTHS.out.heatmap.map{ it -> it[1] }.collect().ifEmpty([]))
+    //ch_multiqc_files = ch_multiqc_files.mix(PLOT_BIN_DEPTHS.out.heatmap.map{it -> it[1]}.ifEmpty({}))
     if (!params.skip_binqc){ch_multiqc_files = ch_multiqc_files.mix(CHECKM_MULTIQC_REPORT.out.checkm_mqc_report.collect().ifEmpty([]))}
-    ch_multiqc_files.view { "MultiQC files: $it" }
+    //ch_multiqc_files.view { "MultiQC files: $it" }
     MULTIQC (
         ch_multiqc_files.collect(),
         ch_multiqc_config.toList(),

@@ -1,6 +1,6 @@
 include { MAG_DEPTHS                            } from '../../modules/local/mag_depths'
-//include { MAG_DEPTHS_PLOT                       } from '../../modules/local/mag_depths_plot'
-include { MAG_DEPTHS_PLOT                       } from '../../modules/local/mag_depths_plot_log' //testing new heatmap plot script to plot log transformed values 
+include { MAG_DEPTHS_PLOT                       } from '../../modules/local/mag_depths_plot'
+//include { MAG_DEPTHS_PLOT                       } from '../../modules/local/mag_depths_plot_log' //testing new heatmap plot script to plot log transformed values 
 include { MAG_DEPTHS_SUMMARY                    } from '../../modules/local/mag_depths_summary'
 
 /*
@@ -42,7 +42,6 @@ workflow DEPTHS {
             meta, bins, depth ->
             [meta, bins.unique().flatten(), depth]
         }
-
 
 
     MAG_DEPTHS ( ch_depth_input )

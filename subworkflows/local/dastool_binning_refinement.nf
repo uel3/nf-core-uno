@@ -93,6 +93,7 @@ workflow DASTOOL_BINNING_REFINEMENT {
     emit:
     refined_bins                = ch_dastool_bins_newmeta
     refined_unbins              = refined_unbins
+    contig2bin                  = DASTOOL_DASTOOL.out.contig2bin
     versions                    = ch_versions
 }
 

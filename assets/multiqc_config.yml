@@ -19,18 +19,18 @@ run_modules:
 ## Module order
 top_modules:
   - custom_content
-  - "bowtie2":
-      name: "Bowtie2: host removal"
-      info: "Mapping statistics of reads mapped to host for removal."
-      path_filters:
-        - "*_host_removed.bowtie2.log"   
   - "fastqc":
       name: "FastQC: raw reads"
       path_filters_exclude:
         - "*trimmed*"
+  - "bowtie2":
+      name: "Bowtie2: Host Removal"
+      info: "Mapping statistics of reads mapped to host for removal."
+      path_filters:
+        - "*_host_removed.bowtie2.log"   
   - "fastqc":
       name: "FastQC: after preprocessing"
-      info: "After trimming and illumina adapter removal."
+      info: "After quality trimming and sequencing adapter removal."
       path_filters:
         - "*trimmed*"
 custom_data:
@@ -42,16 +42,33 @@ sp:
   midas2_species_abundance:
     fn: 'combined_midas2_report_mqc.yaml'
     
-  
+custom_data:
   depths:
-    file_format: "png"
-    section_name: "Sample Coverage of MAGs"
-    description: "Sample reads are mapped against the MAG bins. Only bins with reads mapped from all samples are of interest for downstream analysis."
+    file_format: "image"
+    section_name: "Median Sample Coverage of MAGs"
+    description: "Pre-calculated depth information is used to infer read depth in refined MAG bins. Only bins with reads mapped from all samples are of interest for downstream analysis."
     plot_type: "image"
     pconfig:
-      id: "heatmap_reads_bins"
-      title: "Read Coverage of Bins"
+      id: "heatmap_reads_bins_CLR_median"
+      title: "Median Read Coverage of Bins"
       ylab: "Sample Reads"
+sp:
+  depths:
+      fn: "*binDepths.heatmap_mqc.png"
+custom_data:
+  mean_depths:
+    file_format: "image"
+    section_name: "Mean Sample Coverage of MAGs"
+    description: "Sample reads are mapped against MAG bins to calculate bin depths. Only bins with reads mapped from all samples are of interest for downstream analysis."
+    plot_type: "image"
+    pconfig:
+      id: "heatmap_reads_bins_log_mean"
+      title: "Mean Read Coverage of Bins"
+      ylab: "Sample Reads"
+sp:
+  mean_depths: 
+      fn: "*_log_mean_heatmap_mqc.png" 
+
   
   checkm_multiqc_report:
     section_name: "CheckM Statistics"
@@ -68,13 +85,13 @@ table_columns_visible:
     avg_sequence_length: True
     median_sequence_length: True
     total_sequences: True
-    percent_fails: True
+    percent_fails: False
   "FastQC: after preprocessing":
     percent_duplicates: True
     avg_sequence_length: True
     median_sequence_length: True
     total_sequences: True
-    percent_fails: True
+    percent_fails: False
   "Bowtie2: host removal":
     overall_alignment_rate: False
 
@@ -101,4 +118,4 @@ table_columns_name:
     total_sequences: "M Seqs"
     percent_fails: "% Fails"
   "Bowtie2: host removal":
-    overall_alignment_rate: "Alignment Rate"
+    overall_alignment_rate: "Alignment Rate to Human Genome"

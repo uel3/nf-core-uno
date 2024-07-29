@@ -51,7 +51,7 @@ def main(args=None):
     df = np.log(
         df.div(gmeans, axis="columns")
     )  # divide column-wise (axis=1|'columns'), take natural logorithm
-    df.index.name = "MAGs"
+    df.index.name = "Bins"
     df.columns.name = "Samples"
 
     # prepare colors for group information
